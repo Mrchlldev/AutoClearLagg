@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace FiraAja\AutoClearLagg;
 
 use pocketmine\entity\Human;
+use pocketmine\entity\Entity;
+use pocketmine\entity\Living;
 use pocketmine\entity\object\ExperienceOrb;
 use pocketmine\entity\object\ItemEntity;
+use pocketmine\network\mcpe\protocol\PlaySoundPacket;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
 use function array_map;
@@ -96,32 +99,43 @@ class AutoClearLagg extends PluginBase{
                 $entitiesCleared = 0;
                 foreach($this->getServer()->getWorldManager()->getWorlds() as $world){
                     foreach($world->getEntities() as $entity){
-                        if($this->clearItems && $entity instanceof ItemEntity){
+                        if($this->clearItems && $entity instanceof ItemEntity && $entity instanceof ExperienceOrb){
                             $entity->flagForDespawn();
                             ++$entitiesCleared;
-                        }else if($this->clearMobs && !$entity instanceof Human){
+                        } elseif($this->clearMobs && !$entity instanceof Human){
                             if(!in_array($entity, $this->exemptEntities)){
                                 $entity->flagForDespawn();
                                 ++$entitiesCleared;
                             }
-                        }else if($this->clearXpOrbs && $entity instanceof ExperienceOrb){
-                            $entity->flagForDespawn();
-                            ++$entitiesCleared;
                         }
                     }
                 }
                 if($this->messages[self::LANG_ENTITIES_CLEARED] !== ""){
                     foreach($this->getServer()->getOnlinePlayers() as $player){
                     	$player->sendMessage(str_replace("{COUNT}", (string) $entitiesCleared, $this->messages[self::LANG_ENTITIES_CLEARED]));
+                        $this->sendSound($player, "random.levelup");
                     }
                 }
 
                 $this->seconds = $this->interval;
-            }else if(in_array($this->seconds, $this->broadcastTimes) && $this->messages[self::LANG_TIME_LEFT] !== ""){
+            } elseif(in_array($this->seconds, $this->broadcastTimes) && $this->messages[self::LANG_TIME_LEFT] !== ""){
                 foreach($this->getServer()->getOnlinePlayers() as $player){
                 	$player->sendMessage(str_replace("{SECONDS}", (string) $this->seconds, $this->messages[self::LANG_TIME_LEFT]));
+                    $this->sendSound($player, "random.orb");
                 }
             }
         }), 20);
+    }
+
+    public function sendSound(Player $player, string $sound, float $minimumVolume = 1.0, float $volume = 1.0, float $pitch = 1.0): void {
+        $position = $player->getPosition();
+        $pk = new PlaySoundPacket();
+        $pk->soundName = $sound;
+        $pk->volume = $volume > $minimumVolume ? $minimumVolume : $volume;
+        $pk->pitch = $pitch;
+        $pk->x = $position->x;
+        $pk->y = $position->y;
+        $pk->z = $position->z;
+        $player->getNetworkSession()->sendDataPacket($pk);
     }
 }
