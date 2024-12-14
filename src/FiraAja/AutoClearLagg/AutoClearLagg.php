@@ -8,6 +8,7 @@ use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
 use pocketmine\entity\object\ExperienceOrb;
 use pocketmine\entity\object\ItemEntity;
+use pocketmine\entity\object\Painting:
 use pocketmine\network\mcpe\protocol\PlaySoundPacket;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
@@ -102,7 +103,7 @@ class AutoClearLagg extends PluginBase{
                         if($this->clearItems && $entity instanceof ItemEntity && $entity instanceof ExperienceOrb){
                             $entity->flagForDespawn();
                             ++$entitiesCleared;
-                        } elseif($this->clearMobs && !$entity instanceof Human){
+                        } elseif($this->clearMobs && !$entity instanceof Human && !$entity instanceof Painting){
                             if(!in_array($entity, $this->exemptEntities)){
                                 $entity->flagForDespawn();
                                 ++$entitiesCleared;
